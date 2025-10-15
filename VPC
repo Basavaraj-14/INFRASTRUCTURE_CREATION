@@ -1,0 +1,239 @@
+provider "aws" {
+    region = "ap-south-1"
+}
+resource "aws_vpc" "test_vpc" {
+    cidr_block = var.vpc_cidr
+    tags ={
+        Name = var.vpc_name
+    }
+}
+#============================================================================SECURITY_GROUP
+resource "aws_security_group" "test_SG" {
+    vpc_id = aws_vpc.test_vpc.id
+    ingress {
+        protocal = "tcp"
+        from_port = "22"
+        to_port = "22"
+        cidr_block = ["0.0.0.0/0"]
+    }
+    egress {
+        protocal = "-1"
+        from_port = "0"
+        to_port = "0"
+        cidr_block = ["0.0.0.0/0"]
+    }
+    tags = {
+        Name = "${var.vpc_name}-test-sg"
+    }
+}
+
+#============================================================================PUBLIC-SUBNETS
+
+resource "aws_subnet" "test_public_subnet_1" {
+    vpc_id = aws_vpc.test_vpc.id
+    availability_zone = var.public_subnet_availability_zone_2
+    map_public_ip_on_launch = true
+    cidr_block = var.public_subnet_cidr_1
+    tags={
+        Name = var.public_subnet_name_1
+    }
+}
+resource "aws_subnet" "test_public_subnet_2" {
+    vpc_id = aws_vpc.test_vpc.id
+    availability_zone = var.public_subnet_avalability_zone_2
+    map_public_ip_on_launch = true
+    cidr_block = var.public_subnet_cidr_2
+    tags={
+        Name = var.public_subnet_name_2
+    }
+}
+#============================================================================INTERNET-GATEWAY
+
+resource "aws_internetgateway" "test_IGW" {
+    vpc_id = aws_vpc.test_vpc.id
+    tags = {
+        Name = var.IGW_name
+    }
+}
+#============================================================================PUBLIC-ROUTE-TABLE
+
+resource "aws_route_table" "test_public_RT" {
+    vpc_id = aws_vpc.test_vpc.id
+    tags = {
+        Name = var.public_RT_name
+    }
+}
+resource "aws_route" "public_internet_access" {
+    route_table_id = aws_route_table.test_public_RT.id
+    destination_cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internetgateway.test_IGW.id
+}
+#============================================================================PUBLIC-ROUTE-TABLE-ASSOCIATION
+
+resource "aws_route_table_association" "for_test_public_subnet_1" {
+    subnet_id = aws_subnet.test_public_subnet_1.id
+    route_table_id = aws_route_table.test_public_RT
+}
+resource "aws_route_table_association" "for_test_public_subnet_2" {
+    subnet_id = aws_subnet.test_public_subnet_2.id
+    route_table_id = aws_route_table.test_public_RT.id
+}
+#============================================================================PRIVATE-SUBNETS
+resource "aws_subnet" "test_private_subnet_1" {
+    vpc_id = aws_vpc.test_vpc.id
+    availability_zone = var.1_private_subnet_avalability_zone
+    cidr_block = var.private_subnet_cidr_1
+    tags = {
+        Name = var.private_subnet_name_1
+    }
+}
+resource "aws_subnet" "test_private_subnet_2" {
+    vpc_id = aws_vpc.test_vpc.id
+    availability_zone = var.2_private_subnet_avalability_zone
+    cidr_block = var.private_subnet_cidr_2
+    tags = {
+        Name = var.private_subnet_name_2
+    }
+}
+#============================================================================NAT-GATEWAY
+resource "aws_eip" "nat_eip" {
+    domain = "vpc"
+}
+resource "aws_nat_gateway" "test_NAT" {
+    allocation_id = aws_eip.nat_eip.id
+    subnet_id = aws_subnet.test_public_subnet_1.id
+    tags = {
+        Name = var.test_NAT_name
+    }
+}
+#============================================================================PRIVATE-ROUTE-TABLE
+
+resource "aws_route_table" "test_private_RT" {
+    vpc_id = aws_vpc.test_vpc.id
+    tags = {
+        Name = var.private_RT_name
+    }
+}
+resource "aws_route" "private_nat_access" {
+    route_table_id = aws_route_tabel.test_private_RT
+    destination_cidr_block = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.test_NAT.id 
+}
+#============================================================================PRIVATE-ROUTE-TABLE-ASSOCIATION
+
+resource "aws_route_table_assocoation" "for_test_private_subnet_1" {
+    subnet_id = aws_subnet.test_private_subnet_1.id
+    route_table_id = aws_route_tabel.test_private_RT.id
+}
+resource "aws_route_table_association" "for_test_private_subnet_2" {
+    subnet_id = aws_subnet.test_private_subnet_2.id
+    route_table_id = aws_route_tabel.test_private_RT.id
+
+}
+#=======================================================================PUBLIC-NACL
+resource "aws_network_cl" "test_public_nacl" {
+    vpc_id = aws_vpc.test_vpc.id
+    tags = {
+        Name = "${var.vpc_name}-public-nacl"
+    }
+}
+resource "aws_network_cl_rule" "inbound_http" {
+    network_cl_id = aws_network_cl.test_public_nacl.id
+    protocal = "tcp"
+    egress = "false"
+    from_port = 80
+    to_port = 80
+    rule_action = "allow"
+    cidr_block = "0.0.0.0/0"
+}
+resource "aws_network_cl_rule" "inbound_https" {
+    network_cl_id = aws_network_cl.test_public_nacl.id
+    protocal = "tcp"
+    egress = "false"
+    from_port = 443
+    to_port = 443
+    rule_action = allow
+    cidr_block = "0.0.0.0/0"
+}
+resource "aws_network_cl" "inbloud_ssh" {
+    network_cl_id = aws_network_cl.test_public_nacl.id
+    protocal = "tcp"
+    cidr_block = "0.0.0.0/0"
+    from_port = "22"
+    to_port = "22"
+    rule_action = "allow"
+    egress = "false"
+}
+resource "aws_network_cl_rule" "outbound_access" {
+    network_cl_id = aws_network_cl.test_public_nacl.id
+    protocal = "-1"
+    rule_action = "allow"
+    egress = "true"
+    cidr_block = "0.0.0./0"
+    from_port = "0"
+    to_port = "0"
+}
+#=======================================================================PUBLIC-NACL_ASSOCIATION_WITH_PUBLIC SUBNETS
+
+resource "aws_nacl_association" "association_nacl_public_subnet_1" {
+    subnet_id = aws_subnet.test_public_subnet_1.id
+    network_cl_id = aws_network_cl.test_public_nacl.id
+}
+resource "aws_nacl_association" "association_nacl_public_subnet_2" {
+    subnet_id = aws_subbet.test_public_subnet_2.id
+    network_cl_id = aws_network_cl.test_public_nacl.id
+}
+#=======================================================================PRIVATE-NACL
+resource "aws_network_cl" "test_private_nacl" {
+    vpc_id = aws_vpc.test_vpc.id
+    tags = {
+        Name = "${var.vpc_name}-private-nacl"
+    }
+}
+resource "aws_network_cl_rule" "outbound_traffic_to_internal_network" {
+    network_cl_id = aws_network_cl.test_private_nacl.id
+    protocal = "tcp"
+    cidr_block = var.vpc_cidr
+    from_port = 1024
+    to_port = 65000
+    rule_action = "allow"
+}
+resource "aws_network_cl_rule" "outbound_traffic_http" {
+    network_cl_id = aws_network_cl.test_private_nacl.id
+    protocal = "tcp"
+    from_port = 80
+    to_port = 80
+    rule_action = "allow"
+    cidr_block = "0.0.0.0/0"
+}
+resource "aws_network_cl_rule" "outbound_traffic_https" {
+    network_cl_id = aws_network_cl.test_private_nacl.id
+    protocal = "tcp"
+    cidr_block = "0.0.0.0/0"
+    rule_action = "alloq"
+    from_port = 443
+    to_port = 443
+    
+}
+#=======================================================================PUBLIC-NACL_ASSOCIATION_WITH_PRIVATE SUBNETS
+
+resource "aws_nacl_association" "association_nacl_private_subnet_1"{
+    network_cl_id = aws_netwrk_cl.test_private_nacl.id
+    subnet_id = aws_subnet.test_private_subnet_1.id
+}
+resource "aws_nacl_association" "association_nacl_private_subnet_2" {
+    network_cl_id = aws_network_cl.test_private_nacl.id
+    subnet_id = aws_subnet.test_private_subnet_2.id
+}
+#=======================================================================CREATING EC2 INSTANCE OUT OF CREATED VPC
+resource "aws_instance" "test_instance" {
+    ami = var.ami_id
+    subnet_id = aws_subnet.test_public_subnet_1.id
+    vpc_security_group_ids = [aws_security_group.test_SG.id]
+    instance_type = var.instance_type #(t2.micro)
+    tags = {
+        Name = "${var.vpc_name}-instance-name"
+    }
+}
+
+
