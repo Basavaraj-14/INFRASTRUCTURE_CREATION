@@ -1,0 +1,80 @@
+provider "aws" {
+  region = "ap-south-1"
+}
+data "aws_vpc" "existing_vpc"{
+  filter {
+    name = "tag:Name"
+    values = ["production_vpc"]
+  }
+}
+data "aws_security_group" "production_SG" {
+    filter {
+      name = "group-name"
+      values = ["production_SG"]
+    }
+}
+data "aws_subnet" "public_subnet" {
+  filter {
+    name = "tag:Name"
+    values = ["public_subnet"]
+  }
+}
+data "aws_subnet" "private_subnet" {
+  filter {
+    name = "tag:Name"
+    values = ["private_subnet"] 
+  }
+}
+data "aws_internet_gateway" "production_IGW" {
+  filter {
+    name = "tag:Name"
+    values = ["production_IGW"]
+  }
+}
+data "aws_nat_gateway" "production_NAT" {
+    filter {
+      name = "tag:Name"
+      values = ["production_NAT"]
+    }
+}
+data "aws_network_acl" "production_public_NACL" {
+  filter {
+    name = "tag:Name"
+    values = ["production_public_NACL"]
+  }
+}
+data "aws_network_acl" "production_private_NACL" {
+    filter {
+      name = "tag:Name"
+      values = ["production_private_NACL"]
+    }
+}
+data "aws_route_table" "production_public_RT" {
+    filter {
+      name = "tag:Name"
+      values = ["production_public_RT"]
+    }
+}
+data "aws_route_table" "production_private_RT" {
+    filter {
+      name = "tag:Name"
+      values  = ["production_private_RT"]
+    }
+}
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  owners = "aws-account-id"
+  filter {
+    name = "name"
+    values = ["ami-gp2"]
+  }
+}
+resource "aws_instance" "production_instance" {
+  ami = data.aws_ami.ubuntu.id
+  instance_type = "t2.micro"
+  vpc_security_group_ids = [data.aws_security_group.production_SG.id]
+  subnet_id = data.aws_subnet.public_subnet.id
+  tags = {
+    Name = "production_instance"
+  }
+}
