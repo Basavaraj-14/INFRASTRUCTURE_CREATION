@@ -1,0 +1,14 @@
+1. Create Empty Block in "main.tf"
+---> provider "aws" {
+      region = "ap-south-1"
+}
+resource "aws_vpc" "test_vpc"{
+}
+
+2. Run import command to fetch existing resource from console
+---> terraform import aws_vpc.test_vpc "vpc-id"
+     tarraform statle list
+     ---> paste the resource in main.tf that is in terrafom state file
+     tarraform  plan
+     terraform apply --auto-approve
+   
