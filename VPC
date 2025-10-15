@@ -11,13 +11,13 @@ resource "aws_vpc" "test_vpc" {
 resource "aws_security_group" "test_SG" {
     vpc_id = aws_vpc.test_vpc.id
     ingress {
-        protocal = "tcp"
+        protocol = "tcp"
         from_port = "22"
         to_port = "22"
         cidr_block = ["0.0.0.0/0"]
     }
     egress {
-        protocal = "-1"
+        protocol = "-1"
         from_port = "0"
         to_port = "0"
         cidr_block = ["0.0.0.0/0"]
@@ -139,7 +139,7 @@ resource "aws_network_cl" "test_public_nacl" {
 }
 resource "aws_network_cl_rule" "inbound_http" {
     network_cl_id = aws_network_cl.test_public_nacl.id
-    protocal = "tcp"
+    protocol = "tcp"
     egress = "false"
     from_port = 80
     to_port = 80
@@ -148,7 +148,7 @@ resource "aws_network_cl_rule" "inbound_http" {
 }
 resource "aws_network_cl_rule" "inbound_https" {
     network_cl_id = aws_network_cl.test_public_nacl.id
-    protocal = "tcp"
+    protocol = "tcp"
     egress = "false"
     from_port = 443
     to_port = 443
@@ -192,7 +192,7 @@ resource "aws_network_cl" "test_private_nacl" {
 }
 resource "aws_network_cl_rule" "outbound_traffic_to_internal_network" {
     network_cl_id = aws_network_cl.test_private_nacl.id
-    protocal = "tcp"
+    protocol = "tcp"
     cidr_block = var.vpc_cidr
     from_port = 1024
     to_port = 65000
@@ -200,7 +200,7 @@ resource "aws_network_cl_rule" "outbound_traffic_to_internal_network" {
 }
 resource "aws_network_cl_rule" "outbound_traffic_http" {
     network_cl_id = aws_network_cl.test_private_nacl.id
-    protocal = "tcp"
+    protocol = "tcp"
     from_port = 80
     to_port = 80
     rule_action = "allow"
@@ -208,7 +208,7 @@ resource "aws_network_cl_rule" "outbound_traffic_http" {
 }
 resource "aws_network_cl_rule" "outbound_traffic_https" {
     network_cl_id = aws_network_cl.test_private_nacl.id
-    protocal = "tcp"
+    protocol = "tcp"
     cidr_block = "0.0.0.0/0"
     rule_action = "alloq"
     from_port = 443
